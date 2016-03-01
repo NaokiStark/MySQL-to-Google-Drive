@@ -1,0 +1,7 @@
+{
+    "require": {
+        "google/apiclient": "1.*",
+        "ifsnop/mysqldump-php": "2.*",
+        "vlucas/phpdotenv": "^2.2"
+    }
+}

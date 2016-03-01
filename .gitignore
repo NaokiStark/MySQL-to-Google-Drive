@@ -1,0 +1,4 @@
+vendor/
+composer.lock
+client_secret.json
+.env
