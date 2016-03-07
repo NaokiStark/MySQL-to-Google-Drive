@@ -137,9 +137,10 @@ function backupDB() {
   );
   try {
     writeLog("Dumping & Compressing DB Started");
+    $mysqlPath = __DIR__ . "/";
     $mysqlFile = 'MYSQL_DUMP_' . date('d_m_Y') . ".bz2";
     $dump = new IMysqldump\Mysqldump('mysql:host='. getenv('MYSQL_HOST') .';dbname=' . getenv('MYSQL_DB_NAME'), getenv('MYSQL_USER'), getenv('MYSQL_PASSWORD'), $dumpSettings);
-    $dump->start($mysqlFile);
+    $dump->start($mysqlPath . $mysqlFile);
     writeLog("Dumping & Compressing DB Finished");
 
     return $mysqlFile;
@@ -156,6 +157,6 @@ $mysqlFile = backupDB();
 uploadFileToDrive($mysqlFile);
 
 writeLog("Deleting local file!");
-unlink($mysqlFile);
+unlink(__DIR__ . "/" . $mysqlFile);
 writeLog("Local file deleted");
 writeLog("=========================================================");
