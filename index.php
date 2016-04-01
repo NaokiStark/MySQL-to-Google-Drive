@@ -4,7 +4,7 @@ require __DIR__ . '/vendor/autoload.php';
 use Ifsnop\Mysqldump as IMysqldump;
 
 try {
-  writeLog("=========================================================");
+  writeLog("=========================================================", false);
   $dotenv = new Dotenv\Dotenv(__DIR__);
   $dotenv->load();  
 } catch (Exception $e) {
@@ -23,9 +23,9 @@ define('SCOPES', implode(' ', array(
 ));
 
 if (php_sapi_name() != 'cli') {
-  writeLog("Check the Request Come From");
+  writeLog("Check the Request Come From", false);
   throw new Exception('This application must be run on the command line.');
-  writeLog("Check the Request Come From: OK!");
+  writeLog("Check the Request Come From: OK!", false);
 }
 
 /**
@@ -138,19 +138,36 @@ function backupDB() {
   try {
     writeLog("Dumping & Compressing DB Started");
     $mysqlPath = __DIR__ . "/";
-    $mysqlFile = 'MYSQL_DUMP_' . date('d_m_Y') . ".bz2";
+    $mysqlFile = 'MYSQL_DUMP_' . date('Y_m_d') . ".bz2";
     $dump = new IMysqldump\Mysqldump('mysql:host='. getenv('MYSQL_HOST') .';dbname=' . getenv('MYSQL_DB_NAME'), getenv('MYSQL_USER'), getenv('MYSQL_PASSWORD'), $dumpSettings);
     $dump->start($mysqlPath . $mysqlFile);
     writeLog("Dumping & Compressing DB Finished");
 
     return $mysqlFile;
   } catch (\Exception $e) {
+    writeLog('mysqldump-php error: ' . $e->getMessage());
     echo 'mysqldump-php error: ' . $e->getMessage();
   }
 }
 
-function writeLog($message = "") {
+function writeLog($message = "", $postToSlack = true) {
+  if ($postToSlack) {
+    postToSlack($message);
+  }
+
   echo "[" . date('d-m-Y H:i:s') . "] " . $message . "\n";  
+}
+
+/**
+ * Post to Slack
+ * @return void
+ */ 
+function postToSlack($message)
+{
+  if ((bool)getenv('SLACK') && trim($message)!=='') {
+    $slack = new Maknz\Slack\Client(getenv('SLACK_URL'));
+    $slack->send('*[BACKUP DB]* ' . $message);
+  }
 }
 
 $mysqlFile = backupDB();
@@ -159,4 +176,4 @@ uploadFileToDrive($mysqlFile);
 writeLog("Deleting local file!");
 unlink(__DIR__ . "/" . $mysqlFile);
 writeLog("Local file deleted");
-writeLog("=========================================================");
+writeLog("=========================================================", false);
