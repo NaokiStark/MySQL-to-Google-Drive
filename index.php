@@ -116,11 +116,16 @@ function uploadFileToDrive($fileName)
 
   writeLog("Upload file to Google Drive Started");
 
-  $createdFile = $service->files->create($file, array(
-                  'data' => file_get_contents($currentFile),
-                  'mimeType' => $currentFileMime,
-                  'uploadType'=> 'multipart'
-                ));
+  try {
+    $createdFile = $service->files->create($file, array(
+                    'data' => file_get_contents($currentFile),
+                    'mimeType' => $currentFileMime,
+                    'uploadType'=> 'multipart'
+                  ));
+  } catch (\Exception $e) {
+    writeLog("Upload canceled! We got an error! : " . $e->getMessage()); die;
+  }
+
 
   writeLog("Upload file to Google Drive Finished");
 
