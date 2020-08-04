@@ -163,6 +163,67 @@ function writeLog($message = "", $postToSlack = true) {
   echo "[" . date('d-m-Y H:i:s') . "] " . $message . "\n";  
 }
 
+function uploadFileToDriveV2($fileName)
+{
+  // Get the API client and construct the service object.
+  $client = getClient();
+  $service = new Google_Service_Drive($client);
+
+  $file = new Google_Service_Drive_DriveFile();
+
+  $currentFile = __DIR__ . '/' . $fileName;
+  $currentFileInfo = pathinfo($currentFile);
+  $currentFileMime = mime_content_type($currentFile);
+  $chunkSizeBytes = 1 * 1024 * 1024;
+  $client->setDefer(true);
+
+  // Set the metadata
+  $file->setName($currentFileInfo['filename']);
+  $file->setDescription( $currentFileInfo['filename'] . " is uploaded by automated system!" );
+  $file->setMimeType($currentFileMime);
+
+  $isDirectory = DIRECTORY_TO_SAVE;
+  if ($isDirectory) {
+    $file->setParents(array(DIRECTORY_TO_SAVE));
+  }
+  $request = $service->files->create($file);
+  $media = new Google_Http_MediaFileUpload(
+      $client,
+      $request,
+      $currentFileMime,
+      null,
+      true,
+      $chunkSizeBytes
+  );
+  $media->setFileSize(filesize($currentFile));
+  writeLog("Upload file to Google Drive Started");
+
+  try {
+    $status = false;
+      $handle = fopen($currentFile, "rb");
+      while (!$status && !feof($handle)) {
+        $chunk = fread($handle, $chunkSizeBytes);
+        $status = $media->nextChunk($chunk);
+      }
+    
+      // The final value of $status will be the data from the API for the object
+      // that has been uploaded.
+      $result = false;
+      if ($status != false) {
+        $result = $status;
+      }
+    
+      fclose($handle);
+  } catch (\Exception $e) {
+    writeLog("Upload canceled! We got an error! : " . $e->getMessage()); die;
+  }
+
+
+  writeLog("Upload file to Google Drive Finished");
+
+  return $createdFile;
+}
+
 /**
  * Post to Slack
  * @return void
@@ -176,7 +237,7 @@ function postToSlack($message)
 }
 
 $mysqlFile = backupDB();
-uploadFileToDrive($mysqlFile);
+uploadFileToDriveV2($mysqlFile);
 
 writeLog("Deleting local file!");
 unlink(__DIR__ . "/" . $mysqlFile);
